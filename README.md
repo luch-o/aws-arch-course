@@ -1,5 +1,5 @@
 # aws-arch-course
-Repository containing the exercises of the **Architcting Solutions on AWS** course using serverless framework
+Repository containing the exercises of the [**Architcting Solutions on AWS** Coursera course](https://www.coursera.org/learn/architecting-solutions-on-aws) using Serverless Framework.
 
 ## Week 1: Building a Proof of Concept for a Serverless Solution
 
