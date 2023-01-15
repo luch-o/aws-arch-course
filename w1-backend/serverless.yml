@@ -114,3 +114,32 @@ resources:
         ProvisionedThroughput:
           ReadCapacityUnits: 5
           WriteCapacityUnits: 5
+
+    # SQS Queue
+    OrdersQueue:
+      Type: AWS::SQS::Queue
+      Properties:
+        QueueName: orders-queue
+    
+    OrdersQueuePolicy:
+      Type: AWS::SQS::QueuePolicy
+      Properties:
+        Queues:
+          - !Ref OrdersQueue
+        PolicyDocument:
+          Statement:
+            - Effect: Allow
+              Action:
+                - sqs:DeleteMessage
+                - sqs:ReceiveMessage
+                - sqs:GetQueueAttributes
+                - sqs:ChangeMessageVisibility
+              Principal:
+                AWS: !GetAtt LambdaSQSDynamoDBRole.Arn
+              Resource: !GetAtt OrdersQueue.Arn
+            - Effect: Allow
+              Action:
+                - sqs:SendMessage
+              Principal: 
+                AWS: !GetAtt APIGatewaySQSRole.Arn
+              Resource: !GetAtt OrdersQueue.Arn
