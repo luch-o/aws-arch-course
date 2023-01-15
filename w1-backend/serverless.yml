@@ -6,7 +6,23 @@ provider:
   name: aws
   runtime: python3.9
 
-# functions:
+# exclude everything by default
+package:
+  individually: true
+  patterns:
+    - '!**/*'
+
+functions:
+  store:
+    runtime: python3.9
+    handler: functions/store.lambda_handler
+    role: LambdaSQSDynamoDBRole
+    package: 
+      patterns:
+        - functions/store.py
+    events:
+      - sqs: 
+          arn: !GetAtt OrdersQueue.Arn
 
 resources:
   Resources:
