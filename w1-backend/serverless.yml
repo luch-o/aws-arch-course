@@ -161,3 +161,11 @@ resources:
               Principal: 
                 AWS: !GetAtt APIGatewaySQSRole.Arn
               Resource: !GetAtt OrdersQueue.Arn
+
+    OrderCreatedSNSTopic:
+      Type: AWS::SNS::Topic
+      Properties:
+        TopicName: order-created-topic
+        Subscription: 
+          - Endpoint: ${file(./secret.yml):email}
+            Protocol: email

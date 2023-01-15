@@ -12,3 +12,15 @@ The following architectural diagram shows the flow for the serverless solution t
 ![Architecture Diagram](w1-backend/arch.png)
 
 In this architecture, you will use a REST API to place a database entry in the Amazon SQS queue. Amazon SQS will then invoke the first Lambda function, which inserts the entry into a DynamoDB table. After that, DynamoDB Streams will capture a record of the new entry in a database and invoke a second Lambda function. The function will pass the database entry to Amazon SNS. After Amazon SNS processes the new record, it will send you a notification through a specified email address.
+
+### Replication Instructions
+
+First, make sure to set up aws credentials and install Serverless Framework, instructions can be found in the [Serverless Framework Documentation](https://www.serverless.com/framework/docs/getting-started). Change directory to `w1-backend` and create a `secrets.yml` file to include your email address as follows:
+
+```yaml
+email: your-emain@somewhere.com
+```
+
+This file is excluded from the repository but is read from in the template to set up the SNS Topic subscription.
+
+Then you can run the `sls deploy` command to deploy the proof-of-concept architecture. Remember to check your email to confirm the SNS Subscription so you are able to receive notifications when testing the application.
