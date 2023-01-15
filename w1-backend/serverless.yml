@@ -1,0 +1,100 @@
+service: backend-poc
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+
+# functions:
+
+resources:
+  Resources:
+    # Roles
+    LambdaSQSDynamoDBRole:
+      Type: AWS::IAM::Role
+      Properties: 
+        RoleName: Lambda-SQS-DynamoDB
+        AssumeRolePolicyDocument: 
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+        Policies:
+          - PolicyName: Lambda-Write-DynamoDB
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+              - Effect: Allow
+                Action:
+                - dynamodb:PutItem
+                - dynamodb:DescribeTable
+                Resource: "*"
+          - PolicyName: Lambda-Read-SQS
+            PolicyDocument: 
+              Version: '2012-10-17'
+              Statement:
+              - Effect: Allow
+                Action:
+                - sqs:DeleteMessage
+                - sqs:ReceiveMessage
+                - sqs:GetQueueAttributes
+                - sqs:ChangeMessageVisibility
+                Resource: "*"
+    
+    LambdaDynamoDBStreamsSNSRole:
+      Type: AWS::IAM::Role
+      Properties: 
+        RoleName: Lambda-DynamoDBStreams-SNS
+        AssumeRolePolicyDocument: 
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action:
+                - 'sts:AssumeRole'
+        Policies:
+          - PolicyName: Lambda-DynamoDBStreams-Read
+            PolicyDocument:
+              Version: '2012-10-17'
+              Statement:
+              - Effect: Allow
+                Action:
+                - dynamodb:GetShardIterator
+                - dynamodb:DescribeStream
+                - dynamodb:ListStreams
+                - dynamodb:GetRecords
+                Resource: "*"
+          - PolicyName: Lambda-SNS-Publish
+            PolicyDocument: 
+              Version: '2012-10-17'
+              Statement:
+              - Effect: Allow
+                Action:
+                - sns:Publish
+                - sns:GetTopicAttributes
+                - sns:ListTopics
+                Resource: "*"
+
+    APIGatewaySQSRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: APIGateway-SQS
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service:
+              - apigateway.amazonaws.com
+            Action:
+            - sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/service-role/AmazonAPIGatewayPushToCloudWatchLogs
