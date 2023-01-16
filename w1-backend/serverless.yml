@@ -183,3 +183,38 @@ resources:
         Subscription: 
           - Endpoint: ${file(./secret.yml):email}
             Protocol: email
+
+    # Rest API
+    RestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: orders-api
+
+    PostOrderAPIMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        RestApiId: !Ref RestApi
+        ResourceId: !GetAtt RestApi.RootResourceId
+        HttpMethod: POST
+        AuthorizationType: NONE
+        Integration:
+          Type: AWS
+          Credentials: !GetAtt APIGatewaySQSRole.Arn
+          IntegrationHttpMethod: POST
+          Uri: !Join
+            - ''
+            - - 'arn:aws:apigateway:'
+              - ${aws:region}
+              - ':sqs:path/'
+              - ${aws:accountId}
+              - /
+              - !GetAtt OrdersQueue.QueueName
+          RequestParameters:
+            integration.request.header.Content-Type: '''application/x-www-form-urlencoded'''
+          RequestTemplates:
+            application/json: Action=SendMessage&MessageBody=$input.body
+          PassthroughBehavior: NEVER
+          IntegrationResponses:
+            - StatusCode: 200
+        MethodResponses:
+          - StatusCode: 200
