@@ -24,6 +24,20 @@ functions:
       - sqs: 
           arn: !GetAtt OrdersQueue.Arn
 
+  notify:
+    runtime: python3.9
+    handler: functions/notify.lambda_handler
+    role: LambdaDynamoDBStreamsSNSRole
+    package:
+      patterns:
+        - functions/notify.py
+    environment:
+      TOPIC_ARN: !GetAtt OrderCreatedSNSTopic.TopicArn
+    events:
+      - stream:
+          type: dynamodb
+          arn: !GetAtt OrdersDynamoDBTable.StreamArn
+
 resources:
   Resources:
     # Roles
