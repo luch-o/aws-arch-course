@@ -215,6 +215,26 @@ resources:
             application/json: Action=SendMessage&MessageBody=$input.body
           PassthroughBehavior: NEVER
           IntegrationResponses:
-            - StatusCode: 200
+            - StatusCode: '200'
         MethodResponses:
-          - StatusCode: 200
+          - StatusCode: '200'
+
+    ApiDeployment:
+      Type: AWS::ApiGateway::Deployment
+      Properties:
+        RestApiId: !Ref RestApi
+
+    ApiStage:
+      Type: AWS::ApiGateway::Stage
+      Properties:
+        RestApiId: !Ref RestApi
+        DeploymentId: !Ref ApiDeployment
+        StageName: ${sls:stage}
+  
+  Outputs:
+    Endpoint: 
+      Value: !Sub
+      - https://${api_id}.execute-api.${region}.amazonaws.com/${stage}
+      - api_id: !Ref RestApi
+        region: ${aws:region}
+        stage: !Ref ApiStage
