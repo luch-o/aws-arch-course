@@ -24,3 +24,10 @@ email: your-emain@somewhere.com
 This file is excluded from the repository but is read from in the template to set up the SNS Topic subscription.
 
 Then you can run the `sls deploy` command to deploy the proof-of-concept architecture. Remember to check your email to confirm the SNS Subscription so you are able to receive notifications when testing the application.
+
+Since the RestAPI is created as a resource rather than as an Event, the endpoint is not displayed by the framework after a deployment but instead is included as a Stack Output. To see the endpoint you can:
+ - Deploy with `sls deploy --verbose`
+ - Display service information after deployment with `sls info --verbose`
+ - Go get it from the AWS Management Console
+
+Now you have the endpoint to test the Proof of Concept!
