@@ -1,0 +1,38 @@
+service: analytics-poc
+
+provider:
+  name: aws
+  runtime: python3.9
+
+package:
+  individually: true
+  patterns:
+    - "!**/**"
+
+#functions:
+
+resources:
+  Resources:
+    # Roles
+    ApiGatewayFirehoseRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ApiGateway-Firehose
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - apigateway.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyDocument:
+              Version: "2012-10-17"
+              Statement:
+                Effect: Allow
+                Action: firehose:PutRecord
+                Resource: "*"
+            PolicyName: API-Firehose
+  
