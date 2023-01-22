@@ -9,7 +9,15 @@ package:
   patterns:
     - "!**/**"
 
-#functions:     
+functions:
+  format:
+    handler: functions/format.lambda_handle
+    name: format
+    description: Add newline at the end of records
+    timeout: 10
+    package: 
+      patterns:
+        - "functions/format.py"
 
 resources:
   Resources:
