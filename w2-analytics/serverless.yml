@@ -9,7 +9,7 @@ package:
   patterns:
     - "!**/**"
 
-#functions:
+#functions:     
 
 resources:
   Resources:
@@ -35,4 +35,9 @@ resources:
                 Action: firehose:PutRecord
                 Resource: "*"
             PolicyName: API-Firehose
-  
+
+    Bucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${sls:stage}-datalake
+        
