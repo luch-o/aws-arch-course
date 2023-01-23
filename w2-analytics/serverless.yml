@@ -10,9 +10,9 @@ package:
     - "!**/**"
 
 functions:
-  format:
+  transform:
     handler: functions/format.lambda_handle
-    name: format
+    name: transform-data
     description: Add newline at the end of records
     timeout: 10
     package: 
@@ -21,7 +21,7 @@ functions:
 
 resources:
   Resources:
-    # Roles
+    # Role for API Gateway Integration with Firehose
     ApiGatewayFirehoseRole:
       Type: AWS::IAM::Role
       Properties:
@@ -31,8 +31,7 @@ resources:
           Statement:
             - Effect: Allow
               Principal:
-                Service:
-                  - apigateway.amazonaws.com
+                Service: apigateway.amazonaws.com
               Action:
                 - sts:AssumeRole
         Policies:
@@ -43,9 +42,67 @@ resources:
                 Action: firehose:PutRecord
                 Resource: "*"
             PolicyName: API-Firehose
+    
+    # Role for firehose with S3 Destination and Lambda transformation
+    FirehosePutS3Role:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: Firehose-PutS3
+        AssumeRolePolicyDocument: 
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service: firehose.amazonaws.com
+              Action:
+                - sts:AssumeRole
+        Policies:
+          - PolicyName: Firehose-Put-S3
+            PolicyDocument: 
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - s3:AbortMultipartUpload
+                    - s3:GetBucketLocation
+                    - s3:GetObject
+                    - s3:ListBucket
+                    - s3:ListBucketMultipartUploads
+                    - s3:PutObject
+                    - s3:PutObjectAcl
+                  Resource:
+                    - !GetAtt DatalakeBucket.Arn
+                    - !Join 
+                      - /
+                      - - !GetAtt DatalakeBucket.Arn
+                        - "*"
+          - PolicyName: Firehose-Invoke-Lambda
+            PolicyDocument: 
+              Version: "2012-10-17"
+              Statement:
+                - Effect: Allow
+                  Action:
+                    - lambda:InvokeFunction
+                    - lamdba:GetFunctionConfiguration
+                  Resource: !GetAtt TransformLambdaFunction.Arn
 
-    Bucket:
+    DatalakeBucket:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:service}-${sls:stage}-datalake
-        
+
+    DeliveryStream:
+      Type: AWS::KinesisFirehose::DeliveryStream
+      Properties:
+        DeliveryStreamName: ${self:service}-${sls:stage}-delivery-stream
+        DeliveryStreamType: DirectPut
+        ExtendedS3DestinationConfiguration:
+          BucketARN: !GetAtt DatalakeBucket.Arn
+          RoleARN: !GetAtt FirehosePutS3Role.Arn
+          ProcessingConfiguration:
+            Enabled: true
+            Processors:
+              - Type: Lambda
+                Parameters:
+                  - ParameterName: LambdaArn
+                    ParameterValue: !GetAtt TransformLambdaFunction.Arn
