@@ -11,13 +11,13 @@ package:
 
 functions:
   transform:
-    handler: functions/format.lambda_handler
+    handler: format.lambda_handler
     name: transform-data
     description: Add newline at the end of records
     timeout: 10
     package: 
       patterns:
-        - "functions/format.py"
+        - format.py
 
 resources:
   Resources:
