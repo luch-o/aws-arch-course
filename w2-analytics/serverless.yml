@@ -11,7 +11,7 @@ package:
 
 functions:
   transform:
-    handler: functions/format.lambda_handle
+    handler: functions/format.lambda_handler
     name: transform-data
     description: Add newline at the end of records
     timeout: 10
@@ -106,3 +106,52 @@ resources:
                 Parameters:
                   - ParameterName: LambdaArn
                     ParameterValue: !GetAtt TransformLambdaFunction.Arn
+
+    RestApi:
+      Type: AWS::ApiGateway::RestApi
+      Properties:
+        Name: clickstream-ingest-poc
+      
+    PostDataAPIMethod:
+      Type: AWS::ApiGateway::Method
+      Properties:
+        RestApiId: !Ref RestApi
+        ResourceId: !GetAtt RestApi.RootResourceId
+        HttpMethod: POST
+        AuthorizationType: NONE
+        Integration:
+          Type: AWS
+          Credentials: !GetAtt ApiGatewayFirehoseRole.Arn
+          IntegrationHttpMethod: POST
+          Uri: arn:aws:apigateway:${aws:region}:firehose:action/PutRecord
+          RequestTemplates:
+            application/json: !Sub
+              - | # multiline string
+                {
+                    "DeliveryStreamName": "${stream_name}",
+                    "Record": {
+                        "Data": "$util.base64Encode($util.escapeJavaScript($input.json('$')).replace('\', ''))"
+                    }
+                }
+              - stream_name: !Ref DeliveryStream
+          IntegrationResponses:
+            - StatusCode: '200'
+              ResponseTemplates:
+                application/json: '{"status": "OK"}'
+        MethodResponses:
+          - StatusCode: '200'
+
+    ApiDeployment:
+      Type: AWS::ApiGateway::Deployment
+      Properties:
+        RestApiId: !Ref RestApi
+        StageName: ${sls:stage}
+      DependsOn: PostDataAPIMethod
+  
+  Outputs:
+    Endpoint: 
+      Value: !Sub
+      - https://${api_id}.execute-api.${region}.amazonaws.com/${stage}
+      - api_id: !Ref RestApi
+        region: ${aws:region}
+        stage: ${sls:stage}

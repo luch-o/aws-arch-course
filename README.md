@@ -41,3 +41,54 @@ The following architectural diagram shows the flow that you will follow.
 ![Architecture Diagram](w2-analytics/arch.png)
 
 In this architecture, you use API Gateway to ingest clickstream data. Then, the Lambda function transforms the data and sends it to Kinesis Data Firehose. The Firehose delivery stream places all files in Amazon S3. Then, you use Amazon Athena to query the files. Finally, you use Amazon QuickSight to transform data into graphics
+
+### Replication Instructions
+
+Since the RestAPI is created as a resource rather than as an Event, the endpoint is not displayed by the framework after a deployment but instead is included as a Stack Output. To see the endpoint you can:
+ - Deploy with `sls deploy --verbose`
+ - Display service information after deployment with `sls info --verbose`
+ - Go get it from the AWS Management Console
+
+### Test Records
+
+You can try the service by sending these test records through the API:
+
+**Entree 1**
+```json
+{
+    "element_clicked":"entree_1",
+    "time_spent":12,
+    "source_menu":"restaurant_name",
+    "created_at":"2022–09–11 23:00:00"
+}
+```
+
+**Entree 4**
+```json
+{
+    "element_clicked":"entree_4",
+    "time_spent":32,
+    "source_menu":"restaurant_name",
+    "createdAt":"2022–09–11 23:00:00"
+}
+```
+
+**Drink 1**
+```json
+{
+    "element_clicked":"drink_1",
+    "time_spent":15,
+    "source_menu":"restaurant_name",
+    "created_at":"2022–09–11 23:00:00"
+}
+```
+
+**Drink 3**
+```json
+{
+    "element_clicked":"drink_3",
+    "time_spent":14,
+    "source_menu":"restaurant_name",
+    "created_at":"2022–09–11 23:00:00"
+}
+```
