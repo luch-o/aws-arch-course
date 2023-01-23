@@ -147,7 +147,58 @@ resources:
         RestApiId: !Ref RestApi
         StageName: ${sls:stage}
       DependsOn: PostDataAPIMethod
-  
+
+    # Glue resources to query table in Athena
+    ClickstreamDatabase:
+      Type: AWS::Glue::Database
+      Properties:
+        CatalogId: ${aws:accountId}
+        DatabaseInput:
+          Name: ${self:service}-${sls:stage}-db
+          Description: Database to hold clickstream data
+
+    ClicksteamTable:
+      Type: AWS::Glue::Table  
+      Properties:
+        CatalogId: ${aws:accountId}
+        DatabaseName: !Ref ClickstreamDatabase
+        TableInput:
+          TableType: EXTERNAL_TABLE # This value is important to query from Athena
+          Name: ${self:service}-${sls:stage}-clickstream
+          PartitionKeys:
+            - Name: datehour
+              Type: string
+          Parameters:
+            projection.enabled: true
+            projection.datehour.type: date
+            projection.datehour.format: yyyy/MM/dd/HH
+            projection.datehour.range: 2021/01/01/00,NOW
+            projection.datehour.interval: '1'
+            projection.datehour.interval.unit: HOURS
+            storage.location.template: !Sub 
+              - s3://${bucket}/${!datehour}
+              - bucket: !Ref DatalakeBucket
+          StorageDescriptor:
+            Columns:
+              - Name: element_clicked
+                Type: string
+              - Name: time_spent
+                Type: int
+              - Name: source_menu
+                Type: string
+              - Name: created_at
+                Type: string
+            Location: !Sub
+              - s3://${bucket}/
+              - bucket: !Ref DatalakeBucket
+            SerdeInfo:
+              SerializationLibrary: org.openx.data.jsonserde.JsonSerDe
+              Parameters: 
+                paths: 'element_clicked, time_spent, source_menu, created_at'
+            InputFormat: org.apache.hadoop.mapred.TextInputFormat
+            OutputFormat: org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat
+      DependsOn: ClickstreamDatabase
+
   Outputs:
     Endpoint: 
       Value: !Sub
