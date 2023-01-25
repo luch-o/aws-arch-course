@@ -92,3 +92,7 @@ You can try the service by sending these test records through the API:
     "created_at":"2022–09–11 23:00:00"
 }
 ```
+
+> **Note on QuickSight**: This week template does not include QuickSight resources due to lack of documentacion about how to create them with cloud formation. Though there is already support for QuickSight resources, it is not clear how to create an Analysis nor a Template due to circular dependency issues as stated in this [StackOverflow comment](https://stackoverflow.com/a/69270061) and [this other comment](https://github.com/aws-cloudformation/cloudformation-coverage-roadmap/issues/274#issuecomment-1192475234) in the issue referenced in the former.
+>
+> [This page](https://devops.learnquicksight.online/quicksight-via-cloudformation.html) provides an example using lambda as a custom resource to create QuickSight resources but having already a template created in the account.
