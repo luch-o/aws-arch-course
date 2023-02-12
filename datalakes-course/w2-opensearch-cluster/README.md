@@ -1,4 +1,4 @@
-# Week 2: Creating an Amazon OpenSearch Service Cluster
+# Creating an Amazon OpenSearch Service Cluster
 
 You are tasked with creating a way to ingest data into a data lake that’s hosted on AWS. The data lake uses Amazon S3 as the storage layer and OpenSearch Service for index and search capabilities.
 

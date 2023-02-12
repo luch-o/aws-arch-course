@@ -9,7 +9,8 @@ First, make sure to set up aws credentials and install Serverless Framework, ins
 Further instructions specific for each exercise will be included in its respective documents.
 
 ## Architecting Solutions on AWS Exercises
-- [Week 1: Building a proof of concept for a serverless solution](architecting-course/w1-backend/README.md)
-- [Week 2: Building a proof of concept for data analytics](architecting-course/w2-analytics/README.md)
+- [Building a proof of concept for a serverless solution](architecting-course/w1-backend/README.md)
+- [Building a proof of concept for data analytics](architecting-course/w2-analytics/README.md)
 
 ## Introduction to Designing Datalakes Exercises
+- [Creating an Amazon OpenSearch Service Cluster](datalakes-course/w2-opensearch-cluster/README.md)
