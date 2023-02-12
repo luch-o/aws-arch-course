@@ -27,6 +27,7 @@ functions:
     role: LambdaESS3Role
     environment:
       S3_BUCKET: !Ref DatalakeBucket
+      ES_DOMAIN_URL: !GetAtt OpenSearchDomain.DomainEndpoint
     package:
       patterns:
         - upload_data/upload_data.py
@@ -54,6 +55,33 @@ resources:
       Properties:
         BucketName: ${self:service}-${sls:stage}-datalake
         
+    OpenSearchDomain:
+      Type: AWS::OpenSearchService::Domain
+      Properties:
+        DomainName: ${self:service}-${sls:stage}-domain
+        EngineVersion: OpenSearch_2.3
+        ClusterConfig:
+          InstanceCount: 1
+          InstanceType: t3.small.search
+        EBSOptions:
+          EBSEnabled: true
+          VolumeSize: 10
+        AccessPolicies:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS: "*"
+              Action: es:*
+              Resource: !Sub 
+                - aws:arn:es:${region}:${accountId}:domain/${domain_name}/*
+                - region: ${aws:region}
+                  accountId: ${aws:accountId}
+                  domain_name: ${self:service}-${sls:stage}-domain
+              Condition: 
+                IpAddress:
+                  aws:SourceIp:
+                    - ${file(./secret.yml):ipv4}
 
 plugins:
   - serverless-python-requirements
