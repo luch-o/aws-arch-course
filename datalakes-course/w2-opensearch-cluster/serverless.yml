@@ -22,15 +22,25 @@ package:
 functions:
   upload-data:
     name: ${self:service}-${sls:stage}-upload-data
-    handler: upload-data.handler
+    handler: upload_data.handler
     module: upload_data
     role: LambdaESS3Role
     environment:
       S3_BUCKET: !Ref DatalakeBucket
-      ES_DOMAIN_URL: !GetAtt OpenSearchDomain.DomainEndpoint
+      ES_DOMAIN_URL: !Sub
+        - https://${endpoint}
+        - endpoint: !GetAtt OpenSearchDomain.DomainEndpoint
     package:
       patterns:
         - upload_data/upload_data.py
+    events:
+      - http:
+          method: POST
+          path: /
+          integration: lambda
+          request:
+            template:
+              application/json: "$input.json('$')"
 
 resources:
   Resources:
