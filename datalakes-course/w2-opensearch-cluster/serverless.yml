@@ -1,0 +1,59 @@
+service: sensor-ingestion
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+
+custom:
+  pythonRequirements:
+    dockerizePip: non-linux
+    slim: true
+    noDeploy:
+      - boto3
+
+# exclude everything by default
+package:
+  individually: true
+  patterns:
+    - '!**/*'
+
+functions:
+  upload-data:
+    name: ${self:service}-${sls:stage}-upload-data
+    handler: upload-data.handler
+    module: upload_data
+    role: LambdaESS3Role
+    environment:
+      S3_BUCKET: !Ref DatalakeBucket
+    package:
+      patterns:
+        - upload_data/upload_data.py
+
+resources:
+  Resources:
+    LambdaESS3Role:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: ${self:service}-${sls:stage}-upload-role
+        AssumeRolePolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                Service:
+                  - lambda.amazonaws.com
+              Action: sts:AssumeRole
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/AmazonS3FullAccess
+          - arn:aws:iam::aws:policy/AmazonESFullAccess
+
+    DatalakeBucket:
+      Type: AWS::S3::Bucket
+      Properties:
+        BucketName: ${self:service}-${sls:stage}-datalake
+        
+
+plugins:
+  - serverless-python-requirements

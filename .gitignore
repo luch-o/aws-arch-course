@@ -133,3 +133,8 @@ dmypy.json
 
 # file with secrets
 secret.yml
+
+# serverless node plugin dependency files
+node_modules
+package.json
+package-lock.json
