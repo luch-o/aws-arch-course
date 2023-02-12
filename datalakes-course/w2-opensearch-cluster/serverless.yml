@@ -54,7 +54,22 @@ resources:
       Type: AWS::S3::Bucket
       Properties:
         BucketName: ${self:service}-${sls:stage}-datalake
-        
+      
+    DatalakePolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref DatalakeBucket
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS: !GetAtt LambdaESS3Role.Arn
+              Action: s3:*
+              Resource: !Sub
+                - ${bucket_arn}/*
+                - bucket_arn: !GetAtt DatalakeBucket.Arn
+
     OpenSearchDomain:
       Type: AWS::OpenSearchService::Domain
       Properties:
@@ -82,6 +97,15 @@ resources:
                 IpAddress:
                   aws:SourceIp:
                     - ${file(./secret.yml):ipv4}
+            - Effect: Allow
+              Principal:
+                AWS: !GetAtt LambdaESS3Role.Arn
+              Action: es:*
+              Resource: !Sub 
+              - aws:arn:es:${region}:${accountId}:domain/${domain_name}/*
+              - region: ${aws:region}
+                accountId: ${aws:accountId}
+                domain_name: ${self:service}-${sls:stage}-domain
 
 plugins:
   - serverless-python-requirements
