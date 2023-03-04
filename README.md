@@ -14,3 +14,4 @@ Further instructions specific for each exercise will be included in its respecti
 
 ## Introduction to Designing Datalakes Exercises
 - [Creating an Amazon OpenSearch Service Cluster](datalakes-course/w2-opensearch-cluster/README.md)
+- [Building a log-analytics solution with Amazon Kinesis](datalakes-course/w3-kinesis/README.md)
