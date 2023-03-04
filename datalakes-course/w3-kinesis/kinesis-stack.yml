@@ -2,6 +2,11 @@ AWSTemplateFormatVersion: "2010-09-09"
 Description: "Designing_DataLakes_Kinesis_Exercise"
 
 Parameters:
+  IngestionStreamName:
+    Description: "Firehose Ingestion Steam name to configure kinesis agent in EC2 Instance"
+    Type: String
+    Default: web-log-ingestion-stream
+
   OpenSearchDomainName:
     Description: "Domain name for OpenSearch Domain resource"
     Type: String
@@ -16,6 +21,8 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       TemplateURL: ./exercise-2-kinesis.yml
+      Parameters:
+        IngestionStreamName: !Ref IngestionStreamName
 
   OpenSearchDomain:
     Type: AWS::OpenSearchService::Domain
@@ -35,20 +42,20 @@ Resources:
           MasterUserPassword: !Ref OpenSearchAdminPassword
       AccessPolicies:
         Version: "2012-10-17"
-          Statement:
-            - Effect: Allow
-              Principal:
-                AWS:
-                  - "*"
-              Action:
-                - es:*
-              Resource: !Sub 
-                - arn:aws:es:${region}:${accountId}:domain/${domain_name}
-                - region: !Ref AWS::Region
-                  accountId: !Ref AWS::AccountId
-                  domain_name: !Ref OpenSearchDomainName
+        Statement:
+          - Effect: Allow
+            Principal:
+              AWS:
+                - "*"
+            Action:
+              - es:*
+            Resource: !Sub 
+              - arn:aws:es:${region}:${accountId}:domain/${domain_name}
+              - region: !Ref AWS::Region
+                accountId: !Ref AWS::AccountId
+                domain_name: !Ref OpenSearchDomainName
 
-  DatalakeBucket:
+  RawLogsBucket:
     Type: AWS::S3::Bucket
     Properties:
       BucketName: !Sub web-log-raw-${AWS::Region}-${AWS::AccountId}
@@ -80,18 +87,84 @@ Resources:
                   - s3:PutObject
                   - s3:PutObjectAcl
                 Resource:
-                  - !GetAtt DatalakeBucket.Arn
+                  - !GetAtt RawLogsBucket.Arn
                   - !Join 
                     - /
-                    - - !GetAtt DatalakeBucket.Arn
+                    - - !GetAtt RawLogsBucket.Arn
                       - "*"
 
   IngestionStream:
     Type: AWS::KinesisFirehose::DeliveryStream
     Properties:
-      DeliveryStreamName: web-log-ingestion-stream
+      DeliveryStreamName: !Ref IngestionStreamName
       DeliveryStreamType: DirectPut
       S3DestinationConfiguration:
-        BucketARN: !GetAtt DatalakeBucket.Arn
+        BucketARN: !GetAtt RawLogsBucket.Arn
         RoleARN: !GetAtt IngestionStreamRole.Arn
-  
+
+  AggregatedDataStreamRole: 
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: aggregated-data-stream-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: firehose-put-opensearch
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                Resource:
+                  - !GetAtt RawLogsBucket.Arn
+                  - !Join 
+                    - /
+                    - - !GetAtt RawLogsBucket.Arn
+                      - "*"
+              - Effect: Allow
+                Action:
+                  - es:DescribeDomain
+                  - es:DescribeDomains
+                  - es:DescribeDomainConfig
+                  - es:ESHttpPost
+                  - es:ESHttpPut
+                Resource:
+                  - !GetAtt OpenSearchDomain.Arn
+                  - !Join
+                    - /
+                    - !GetAtt OpenSearchDomain.Arn
+                    - "*"
+
+  OpenSearchErrorsBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub web-log-aggregated-errors-${AWS::Region}-${AWS::AccountId}
+
+  AggregatedDataStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: web-log-aggregated-data
+      DeliveryStreamType: DirectPut
+      ElasticsearchDestinationConfiguration:
+        DomainARN: !GetAtt OpenSearchDomain.Arn
+        IndexName: request_data
+        RoleARN: !GetAtt AggregatedDataStreamRole.Arn
+        S3Configuration:
+          BucketARN: !GetAtt OpenSearchErrorsBucket.Arn
+          RoleARN: !GetAtt AggregatedDataStreamRole.Arn
+          BufferingHints:
+            IntervalInSeconds: 60
+            SizeInMbs: 1
