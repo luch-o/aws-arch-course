@@ -6,3 +6,6 @@ In this exercise, you produce data with the Kinesis agent, which runs on an EC2 
 
 ![Architecture Diagram](arch.png)
 
+## Replication Instructions
+
+Since this week's architecture doesn't have lambda functions and a CloudFormation stack is provided with an EC2 instance to produce dummy data, this exercise is done using CloudFormation only with the provided stack as a Nested Stack.

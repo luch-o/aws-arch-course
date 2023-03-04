@@ -1,0 +1,97 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Designing_DataLakes_Kinesis_Exercise"
+
+Parameters:
+  OpenSearchDomainName:
+    Description: "Domain name for OpenSearch Domain resource"
+    Type: String
+    Default: web-log-summary
+
+  OpenSearchAdminPassword:
+    Description: "Password to use for the admin user in the OpenSearch domain"
+    Type: String
+
+Resources:
+  ProducerStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL: ./exercise-2-kinesis.yml
+
+  OpenSearchDomain:
+    Type: AWS::OpenSearchService::Domain
+    Properties:
+      DomainName: !Ref OpenSearchDomainName
+      EngineVersion: OpenSearch_2.3
+      ClusterConfig:
+        InstanceCount: 1
+        InstanceType: m5.large.search
+      EBSOptions:
+        EBSEnabled: true
+        VolumeSize: 10
+      AdvancedSecurityOptions:
+        InternalUserDatabaseEnabled: true
+        MasterUserOptions:
+          MasterUserName: admin
+          MasterUserPassword: !Ref OpenSearchAdminPassword
+      AccessPolicies:
+        Version: "2012-10-17"
+          Statement:
+            - Effect: Allow
+              Principal:
+                AWS:
+                  - "*"
+              Action:
+                - es:*
+              Resource: !Sub 
+                - arn:aws:es:${region}:${accountId}:domain/${domain_name}
+                - region: !Ref AWS::Region
+                  accountId: !Ref AWS::AccountId
+                  domain_name: !Ref OpenSearchDomainName
+
+  DatalakeBucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName: !Sub web-log-raw-${AWS::Region}-${AWS::AccountId}
+
+  IngestionStreamRole: 
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: ingestion-stream-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action:
+              - sts:AssumeRole
+      Policies:
+        - PolicyName: firehose-put-s3
+          PolicyDocument: 
+            Version: "2012-10-17"
+            Statement:
+              - Effect: Allow
+                Action:
+                  - s3:AbortMultipartUpload
+                  - s3:GetBucketLocation
+                  - s3:GetObject
+                  - s3:ListBucket
+                  - s3:ListBucketMultipartUploads
+                  - s3:PutObject
+                  - s3:PutObjectAcl
+                Resource:
+                  - !GetAtt DatalakeBucket.Arn
+                  - !Join 
+                    - /
+                    - - !GetAtt DatalakeBucket.Arn
+                      - "*"
+
+  IngestionStream:
+    Type: AWS::KinesisFirehose::DeliveryStream
+    Properties:
+      DeliveryStreamName: web-log-ingestion-stream
+      DeliveryStreamType: DirectPut
+      S3DestinationConfiguration:
+        BucketARN: !GetAtt DatalakeBucket.Arn
+        RoleARN: !GetAtt IngestionStreamRole.Arn
+  
