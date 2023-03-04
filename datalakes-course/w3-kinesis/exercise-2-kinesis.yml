@@ -1,0 +1,142 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Designing_DataLakes"
+Parameters: 
+   
+  VpcCIDR: 
+    Default: 10.16.0.0/16
+    Description: "The CIDR block for the VPC"
+    Type: String
+    AllowedValues:
+      - 10.16.0.0/16
+    
+  SubnetCIDR: 
+    Default: 10.16.10.0/24
+    Description: "CIDR for public subnet"
+    Type: String
+    AllowedValues:
+      - 10.16.10.0/24
+
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/amzn2-ami-hvm-x86_64-gp2'
+        
+Resources:
+  VPC:
+    Type: "AWS::EC2::VPC"
+    Properties:
+      CidrBlock: !Ref VpcCIDR
+      EnableDnsSupport: true
+      EnableDnsHostnames: true  
+      Tags: 
+       - Key: Name
+         Value: "CF VPC"
+
+  subnet:
+    Type: "AWS::EC2::Subnet"
+    Properties:
+     VpcId: !Ref VPC
+     AvailabilityZone: 
+      Fn::Select:
+      - 0
+      - Fn::GetAZs: ''
+     CidrBlock: !Ref SubnetCIDR
+     MapPublicIpOnLaunch: true
+     Tags:
+      - Key: Name
+        Value: "CF subnet"
+        
+  IGW:
+    Type: "AWS::EC2::InternetGateway"
+    DependsOn: VPC
+  AttachGateway:
+    Type: "AWS::EC2::VPCGatewayAttachment"
+    DependsOn: 
+      - VPC
+      - IGW
+    Properties: 
+     VpcId: !Ref VPC
+     InternetGatewayId: !Ref IGW
+     
+  ec2Route:
+    Type: "AWS::EC2::RouteTable"
+    DependsOn:
+      - VPC
+      - AttachGateway
+    Properties:
+      VpcId: !Ref VPC
+
+  routeOut:
+    Type: "AWS::EC2::Route"
+    DependsOn: 
+      - ec2Route
+      - AttachGateway
+    Properties:
+      DestinationCidrBlock: 0.0.0.0/0
+      GatewayId: !Ref IGW
+      RouteTableId: !Ref ec2Route
+
+  SubnetRouteAssociate:
+    Type: "AWS::EC2::SubnetRouteTableAssociation"
+    DependsOn:
+      - ec2Route
+      - subnet 
+    Properties:
+      RouteTableId: !Ref ec2Route
+      SubnetId: !Ref subnet
+
+  WebInstance:
+    Type: "AWS::EC2::Instance"
+    Properties:
+      InstanceType: t2.micro
+      SubnetId: !Ref subnet
+      IamInstanceProfile: !Ref WebProfile
+      ImageId: !Ref LatestAmiId
+      Tags: 
+        - Key: "Name"
+          Value: "Dummy Web Server"
+      UserData:
+        Fn::Base64:
+           !Sub | 
+           #!/bin/bash -xe
+           sudo yum update -y
+           sudo yum install git -y
+           pip3 install pytz
+           pip3 install numpy
+           pip3 install faker
+           pip3 install tzlocal 
+           git clone https://github.com/kiritbasu/Fake-Apache-Log-Generator.git
+           cd Fake-Apache-Log-Generator/
+           mkdir /tmp/logs
+           cp apache-fake-log-gen.py /tmp/logs/
+           cd /tmp/logs
+           python3 /tmp/logs/apache-fake-log-gen.py -n 0 -o LOG &
+
+  WebProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Path: "/"
+      Roles:
+      - Ref: WebRole
+  WebRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: web-log-ec2-role
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonKinesisFirehoseFullAccess"
+        - "arn:aws:iam::aws:policy/CloudWatchFullAccess"
+        - "arn:aws:iam::aws:policy/service-role/AmazonEC2RoleforSSM"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+        - Effect: Allow
+          Principal:
+            Service:
+            - ec2.amazonaws.com
+          Action:
+          - sts:AssumeRole
+      Path: "/"
+
+  
+  
+
+
