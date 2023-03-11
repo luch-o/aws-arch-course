@@ -22,7 +22,7 @@ Resources:
     Type: AWS::CloudFormation::Stack
     Properties:
       # make sure to use package command for this to be resolved into a valid s3 url
-      TemplateURL: ./exercise-2-kinesis.yml
+      TemplateURL: ./producer-stack.yml
       Parameters:
         IngestionStreamName: !Ref IngestionStreamName
 
@@ -171,3 +171,83 @@ Resources:
             IntervalInSeconds: 60
             SizeInMBs: 1
 
+  AggregationAppRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName: web-log-aggregation-app-role
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service: kinesisanalytics.amazonaws.com
+            Action: sts:AssumeRole
+      Policies:
+        - PolicyName: kinesisanalytics-read-ingestion-firehose
+          PolicyDocument:  
+            Version: "2012-10-17"
+            Statement:
+              Effect: Allow
+              Action:
+                - firehose:DescribeDeliveryStream
+                - firehose:Get*
+              Resource:
+                - !GetAtt IngestionStream.Arn
+        - PolicyName: kinesisanalytics-write-aggregated-firehose
+          PolicyDocument:  
+            Version: "2012-10-17"
+            Statement:
+              Effect: Allow
+              Action:
+                - firehose:DescribeDeliveryStream
+                - firehose:PutRecord
+                - firehose:PutRecordBatch
+              Resource:
+                - !GetAtt AggregatedDataStream.Arn
+          
+  AggregationApp:
+    Type: AWS::KinesisAnalytics::Application
+    Properties:
+      ApplicationName: web-log-aggregation-app
+      Inputs:
+        - NamePrefix: SOURCE_SQL_STREAM
+          InputSchema:
+              RecordColumns:
+                - Name: host
+                  SqlType: VARCHAR(16)
+                - Name: datetime
+                  SqlType: VARCHAR(32)
+                - Name: datetime
+                  SqlType: VARCHAR(32)
+                - Name: request
+                  SqlType: VARCHAR(64)
+                - Name: response
+                  SqlType: integer
+                - Name: bytes
+                  SqlType: integer
+              RecordFormat:
+                  RecordFormatType: JSON
+          KinesisFirehoseInput:
+            ResourceARN: !GetAtt IngestionStream.Arn
+            RoleARN: !GetAtt AggregationAppRole.Arn
+      ApplicationCode: |
+        CREATE OR REPLACE STREAM "DESTINATION_SQL_STREAM"
+          (datetime TIMESTAMP, status INTEGER, statusCount INTEGER);
+
+        CREATE OR REPLACE PUMP "STREAM_PUMP" AS INSERT INTO "DESTINATION_SQL_STREAM"
+        SELECT STREAM ROWTIME as datetime, "response" as status, COUNT(*) AS statusCount
+        FROM "SOURCE_SQL_STREAM_001"
+        GROUP BY "response",
+        FLOOR(("SOURCE_SQL_STREAM_001".ROWTIME - TIMESTAMP '1970-01-01 00:00:00') minute / 1 TO MINUTE);
+
+  AggregationAppOutput:
+    Type: AWS::KinesisAnalytics::ApplicationOutput
+    Properties:
+      ApplicationName: !Ref AggregationApp
+      Output:
+        DestinationSchema:
+          RecordFormatType: JSON
+        KinesisFirehoseOutput:
+          ResourceARN: !GetAtt AggregatedDataStream.Arn
+          RoleARN: !GetAtt AggregationAppRole.Arn
+        Name: DESTINATION_SQL_STREAM
