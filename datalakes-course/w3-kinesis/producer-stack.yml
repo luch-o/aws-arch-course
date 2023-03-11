@@ -54,9 +54,6 @@ Resources:
     DependsOn: VPC
   AttachGateway:
     Type: "AWS::EC2::VPCGatewayAttachment"
-    DependsOn: 
-      - VPC
-      - IGW
     Properties: 
      VpcId: !Ref VPC
      InternetGatewayId: !Ref IGW
@@ -64,15 +61,13 @@ Resources:
   ec2Route:
     Type: "AWS::EC2::RouteTable"
     DependsOn:
-      - VPC
       - AttachGateway
     Properties:
       VpcId: !Ref VPC
 
   routeOut:
     Type: "AWS::EC2::Route"
-    DependsOn: 
-      - ec2Route
+    DependsOn:
       - AttachGateway
     Properties:
       DestinationCidrBlock: 0.0.0.0/0
@@ -81,9 +76,6 @@ Resources:
 
   SubnetRouteAssociate:
     Type: "AWS::EC2::SubnetRouteTableAssociation"
-    DependsOn:
-      - ec2Route
-      - subnet 
     Properties:
       RouteTableId: !Ref ec2Route
       SubnetId: !Ref subnet

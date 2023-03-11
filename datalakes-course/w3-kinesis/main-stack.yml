@@ -15,11 +15,13 @@ Parameters:
   OpenSearchAdminPassword:
     Description: "Password to use for the admin user in the OpenSearch domain"
     Type: String
+    NoEcho: true
 
 Resources:
   ProducerStack:
     Type: AWS::CloudFormation::Stack
     Properties:
+      # make sure to use package command for this to be resolved into a valid s3 url
       TemplateURL: ./exercise-2-kinesis.yml
       Parameters:
         IngestionStreamName: !Ref IngestionStreamName
@@ -145,8 +147,8 @@ Resources:
                   - !GetAtt OpenSearchDomain.Arn
                   - !Join
                     - /
-                    - !GetAtt OpenSearchDomain.Arn
-                    - "*"
+                    - - !GetAtt OpenSearchDomain.Arn
+                      - "*"
 
   OpenSearchErrorsBucket:
     Type: AWS::S3::Bucket
@@ -167,4 +169,5 @@ Resources:
           RoleARN: !GetAtt AggregatedDataStreamRole.Arn
           BufferingHints:
             IntervalInSeconds: 60
-            SizeInMbs: 1
+            SizeInMBs: 1
+
