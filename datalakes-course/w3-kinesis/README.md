@@ -9,3 +9,12 @@ In this exercise, you produce data with the Kinesis agent, which runs on an EC2 
 ## Replication Instructions
 
 Since this week's architecture doesn't have lambda functions and a CloudFormation stack is provided with an EC2 instance to produce dummy data, this exercise is done using CloudFormation only with the provided stack as a Nested Stack.
+
+First, package the `main-stack.yml` so the `producer-stack` is uploaded to s3 and generate a  `main-stack-packaged.yml` ready to be deployed. You must provide an existing bucket in your account to upload the template's artifacts
+
+```
+aws cloudformation package \
+--template-file main-stack.yml \
+--s3-bucket YOUR_BUCKET \
+--output-template-file main-stack-packaged.yml
+```
