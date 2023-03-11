@@ -37,7 +37,14 @@ Resources:
       EBSOptions:
         EBSEnabled: true
         VolumeSize: 10
+      EncryptionAtRestOptions:
+        Enabled: true
+      NodeToNodeEncryptionOptions:
+        Enabled: true
+      DomainEndpointOptions:
+        EnforceHTTPS: true
       AdvancedSecurityOptions:
+        Enabled: true
         InternalUserDatabaseEnabled: true
         MasterUserOptions:
           MasterUserName: admin
