@@ -4,7 +4,7 @@ Repository containing the exercises for the Coursera courses [**Architcting Solu
 
 ## Replication Instructions
 
-First, make sure to set up aws credentials and install Serverless Framework, instructions can be found in the [Serverless Framework Documentation](https://www.serverless.com/framework/docs/getting-started).
+First, make sure to set up aws credentials, install AWS CLI and Serverless Framework, instructions for the latter can be found in the [Serverless Framework Documentation](https://www.serverless.com/framework/docs/getting-started).
 
 Further instructions specific for each exercise will be included in its respective documents.
 
@@ -15,3 +15,4 @@ Further instructions specific for each exercise will be included in its respecti
 ## Introduction to Designing Datalakes Exercises
 - [Creating an Amazon OpenSearch Service Cluster](datalakes-course/w2-opensearch-cluster/README.md)
 - [Building a log-analytics solution with Amazon Kinesis](datalakes-course/w3-kinesis/README.md)
+- [Processing Data in a Data Lake](datalakes-course/w4-processing/README.md)

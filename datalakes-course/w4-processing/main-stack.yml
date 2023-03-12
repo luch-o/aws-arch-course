@@ -1,0 +1,52 @@
+AWSTemplateFormatVersion: "2010-09-09"
+Description: "Designing_DataLakes_Processing_Exercise"
+
+Parameters:
+  SourceDataUri:
+    Description: "S3 URI of the source data in csv format"
+    Type: String
+    Default: s3://aws-tc-largeobjects/DEV-AWS-MO-Designing_DataLakes/week3/
+
+Resources:
+  BucketGlueRoleStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      # make sure to use package command for this to be resolved into a valid s3 url
+      TemplateURL: ./base-stack.yml
+
+  GlueDatabase:
+    Type: AWS::Glue::Database
+    Properties:
+      CatalogId: !Ref AWS::AccountId
+      DatabaseInput:
+        Name: nytaxi_db
+  
+  CsvCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: nytaxi-csv-crawler
+      Role: !GetAtt BucketGlueRoleStack.Outputs.GlueRoleArn
+      DatabaseName: !Ref GlueDatabase
+      Targets:
+        S3Targets:
+          - Path: !Ref SourceDataUri
+  
+  ParquetizeJob:
+    Type: AWS::Glue::Job
+    Properties:
+      Name: nytaxi-parquetize-job
+      Command:
+          Name: glueetl
+          # make sure to use package command for this to be resolved into a valid s3 uri
+          ScriptLocation: ./parquetize.py
+      Role: !GetAtt BucketGlueRoleStack.Outputs.GlueRoleArn
+  
+  ParquetCrawler:
+    Type: AWS::Glue::Crawler
+    Properties:
+      Name: nytaxi-parquet-crawler
+      Role: !GetAtt BucketGlueRoleStack.Outputs.GlueRoleArn
+      DatabaseName: !Ref GlueDatabase
+      Targets:
+        S3Targets:
+          - Path: !GetAtt BucketGlueRoleStack.Outputs.S3Bucket
