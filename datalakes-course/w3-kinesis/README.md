@@ -29,4 +29,13 @@ aws cloudformation deploy \
 --parameter-overrides OpenSearchAdminPassword=YOUR_PASSWORD
 ```
 
+To delete the stack use:
+
+```
+aws cloudformation delete-stack \
+--stack-name web-log-streaming-analytics
+```
+
+This will fail due to the raw logs bucket not being empty but you can empty it and try again.
+
 > **Note**: As of now, I haven't been able to fully configure the OpenSearch Domain to show the data.
