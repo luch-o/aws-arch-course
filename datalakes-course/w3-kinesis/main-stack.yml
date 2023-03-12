@@ -17,6 +17,11 @@ Parameters:
     Type: String
     NoEcho: true
 
+  OpenSearchIndexName:
+    Description: "Index name to use in data sent to open search domain"
+    Type: String
+    Default: request_data
+
 Resources:
   ProducerStack:
     Type: AWS::CloudFormation::Stack
@@ -59,7 +64,7 @@ Resources:
             Action:
               - es:*
             Resource: !Sub 
-              - arn:aws:es:${region}:${accountId}:domain/${domain_name}
+              - arn:aws:es:${region}:${accountId}:domain/${domain_name}/*
               - region: !Ref AWS::Region
                 accountId: !Ref AWS::AccountId
                 domain_name: !Ref OpenSearchDomainName
@@ -152,10 +157,39 @@ Resources:
                   - es:ESHttpPut
                 Resource:
                   - !GetAtt OpenSearchDomain.Arn
-                  - !Join
-                    - /
-                    - - !GetAtt OpenSearchDomain.Arn
-                      - "*"
+                  - !Sub
+                    - "${domainArn}/*"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+              - Effect: Allow
+                Action:
+                  - es:ESHttpGet
+                Resource:
+                  - !Sub
+                    - "${domainArn}/_all/_settings"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+                  - !Sub
+                    - "${domainArn}/_cluster/stats"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+                  - !Sub
+                    - "${domainArn}/${indexName}*/_mapping/*"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+                      indexName: !Ref OpenSearchIndexName
+                  - !Sub
+                    - "${domainArn}/_nodes"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+                  - !Sub
+                    - "${domainArn}/_nodes/stats"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+                  - !Sub
+                    - "${domainArn}/_nodes/*/stats"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+                  - !Sub
+                    - "${domainArn}/stats"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+                  - !Sub
+                    - "${domainArn}/${indexName}*/stats"
+                    - domainArn: !GetAtt OpenSearchDomain.Arn
+                      indexName: !Ref OpenSearchIndexName
 
   OpenSearchErrorsBucket:
     Type: AWS::S3::Bucket
@@ -169,7 +203,7 @@ Resources:
       DeliveryStreamType: DirectPut
       ElasticsearchDestinationConfiguration:
         DomainARN: !GetAtt OpenSearchDomain.Arn
-        IndexName: request_data
+        IndexName: !Ref OpenSearchIndexName
         RoleARN: !GetAtt AggregatedDataStreamRole.Arn
         S3Configuration:
           BucketARN: !GetAtt OpenSearchErrorsBucket.Arn
@@ -222,18 +256,24 @@ Resources:
               RecordColumns:
                 - Name: host
                   SqlType: VARCHAR(16)
+                  Mapping: "$.host"
                 - Name: datetime
                   SqlType: VARCHAR(32)
-                - Name: datetime
-                  SqlType: VARCHAR(32)
+                  Mapping: "$.datetime"
                 - Name: request
                   SqlType: VARCHAR(64)
+                  Mapping: "$.request"
                 - Name: response
                   SqlType: integer
+                  Mapping: "$.response"
                 - Name: bytes
                   SqlType: integer
+                  Mapping: "$.bytes"
               RecordFormat:
                   RecordFormatType: JSON
+                  MappingParameters:
+                    JSONMappingParameters:
+                      RecordRowPath: "$"
           KinesisFirehoseInput:
             ResourceARN: !GetAtt IngestionStream.Arn
             RoleARN: !GetAtt AggregationAppRole.Arn

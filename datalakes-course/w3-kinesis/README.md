@@ -18,3 +18,15 @@ aws cloudformation package \
 --s3-bucket YOUR_BUCKET \
 --output-template-file main-stack-packaged.yml
 ```
+
+Use the following command with the packaged template to deploy the stack:
+
+```
+aws cloudformation deploy \
+--template-file main-stack-packaged.yml \
+--stack-name web-log-streaming-analytics \
+--capabilities CAPABILITY_NAMED_IAM \
+--parameter-overrides OpenSearchAdminPassword=YOUR_PASSWORD
+```
+
+> **Note**: As of now, I haven't been able to fully configure the OpenSearch Domain to show the data.
