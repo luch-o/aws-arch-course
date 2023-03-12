@@ -1,11 +1,17 @@
 AWSTemplateFormatVersion: "2010-09-09"
 Description: "Designing_DataLakes_Processing_Exercise"
+Transform: AWS::LanguageExtensions
 
 Parameters:
   SourceDataUri:
     Description: "S3 URI of the source data in csv format"
     Type: String
     Default: s3://aws-tc-largeobjects/DEV-AWS-MO-Designing_DataLakes/week3/
+
+  CsvDataTable:
+    Description: "Name of the table that will be created by the csv crawler to be passed as an argument to the glue job"
+    Type: String
+    Default: week3
 
 Resources:
   BucketGlueRoleStack:
@@ -35,6 +41,13 @@ Resources:
     Type: AWS::Glue::Job
     Properties:
       Name: nytaxi-parquetize-job
+      GlueVersion: "3.0"
+      NonOverridableArguments:
+        --SOURCE_DATABASE: !Ref GlueDatabase
+        --SOURCE_TABLE: !Ref CsvDataTable
+        --TARGET_PATH: !Sub 
+          - s3://${target_bucket}
+          - target_bucket: !GetAtt BucketGlueRoleStack.Outputs.S3Bucket
       Command:
           Name: glueetl
           # make sure to use package command for this to be resolved into a valid s3 uri
