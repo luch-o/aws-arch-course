@@ -1,0 +1,83 @@
+service: uploader
+
+frameworkVersion: '3'
+
+provider:
+  name: aws
+  runtime: python3.9
+
+
+functions:
+  upload:
+    handler: handler.lambda_handler
+    role: LabLambdaRole
+    environment:
+      S3_BUCKET_NAME: !Ref Bucket
+      DYNAMODB_TABLE_NAME: !Ref Table
+      
+
+resources:
+  Resources:
+    LabLambdaRole:
+      Type: AWS::IAM::Role
+      Properties:
+        RoleName: LabLambdaRole
+        AssumeRolePolicyDocument:
+          Version: '2012-10-17'
+          Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+              - lambda.amazonaws.com
+            Action:
+            - sts:AssumeRole
+        Policies:
+        - PolicyName: LabLambdaPolicy
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+            - Effect: Allow
+              Action:
+              - s3:PutObject
+              - dynamodb:PutItem
+              Resource:
+              - !Sub
+                - "${bucketArn}/*"
+                - bucketArn: !GetAtt Bucket.Arn
+              - !GetAtt Table.Arn
+        ManagedPolicyArns:
+          - arn:aws:iam::aws:policy/CloudWatchLogsFullAccess
+
+    Bucket:
+      Type: AWS::S3::Bucket
+      Properties: 
+        BucketName: ${self:service}-${sls:stage}-uploads
+    
+    BucketPolicy:
+      Type: AWS::S3::BucketPolicy
+      Properties:
+        Bucket: !Ref Bucket
+        PolicyDocument:
+          Version: "2012-10-17"
+          Statement:
+          - Effect: Allow
+            Principal:
+              AWS: !GetAtt LabLambdaRole.Arn
+            Action: s3:PutObject
+            Resource: !Sub
+            - ${bucketArn}/*
+            - bucketArn: !GetAtt Bucket.Arn
+
+    Table:
+      Type: AWS::DynamoDB::Table
+      Properties:
+        AttributeDefinitions:
+        - AttributeName: ID
+          AttributeType: S
+        KeySchema:
+        - AttributeName: ID
+          KeyType: HASH
+        ProvisionedThroughput: 
+          WriteCapacityUnits: 1
+          ReadCapacityUnits: 1
+        TableName: ${self:service}-${sls:stage}-uploads-table

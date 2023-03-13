@@ -1,6 +1,6 @@
 # aws-arch-course
 
-Repository containing the exercises for the Coursera courses [**Architcting Solutions on AWS**](https://www.coursera.org/learn/architecting-solutions-on-aws) and [**Introduction to Designing Datalakes in AWS**](https://www.coursera.org/learn/introduction-to-designing-data-lakes-in-aws) under the [**AWS Cloud Solutions Architect Professional Certificate**](https://www.coursera.org/professional-certificates/aws-cloud-solutions-architect). The exercises are recreated using Serverless Framework.
+Repository containing the exercises for the Coursera courses [**Architcting Solutions on AWS**](https://www.coursera.org/learn/architecting-solutions-on-aws) and [**Introduction to Designing Datalakes in AWS**](https://www.coursera.org/learn/introduction-to-designing-data-lakes-in-aws) under the [**AWS Cloud Solutions Architect Professional Certificate**](https://www.coursera.org/professional-certificates/aws-cloud-solutions-architect). The exercises are recreated using CloudFormation and Serverless Framework.
 
 ## Replication Instructions
 
